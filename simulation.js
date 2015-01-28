@@ -1,13 +1,14 @@
 var renderer;
 var sim;
 var balls = [];
-var numBalls = 100;
+var numBalls = 200;
 var height = 800;
 var width = 600;
 var gravity = vec2.fromValues(0,8.0);
 var dt = 0.1;
-var r = 25;
+var r = 10;
 var k = 15;
+var grid = [[]];
 
 function Ball(){
 	this.p = vec2.fromValues(Math.random()*(width-r*2)+r, Math.random()*(height-r*2)+r);
@@ -29,6 +30,19 @@ function Ball(){
 }
 
 function Simulation(){
+   var grid = function(){
+    var grid = [];
+    var xRes = Math.ceil(width / (2 * r));
+    var yRes = Math.ceil(height / (2 * r));
+    for(var i=0; i<xRes; i++){
+      grid.push([]);
+      for(var j=0; j<yRes; j++){
+        grid[i].push({});
+      }
+    }
+    return grid;
+  }();
+  
   this.update = function(balls){
   	addGravity(balls);
     checkCollisions(balls);
@@ -42,6 +56,7 @@ function Simulation(){
 		checkBoundaryCollisions(balls);
   }
   function checkBallCollisions(balls){
+    buildGrid(balls);
   	for(var i=0; i<balls.length; i++){
   		for(var j=0; j<balls.length; j++){
   			if(i === j) continue;
@@ -56,6 +71,31 @@ function Simulation(){
   		}
   	}
   }
+
+  function buildGrid(balls){
+    for(var i=0; i < balls.length; i++){
+      var x = balls[i].p[0];
+      var y = balls[i].p[1];
+      var xi = Math.floor((x/width) * (r*2));
+      var yi = Math.floor((y/height) * (r*2));
+      if(yi <= 0 && xi <= 0){
+        grid[xi][yi][""+i] = true;
+      }
+    }
+  }
+
+  function getCoords(i){
+      var x = balls[i].p[0];
+      var y = balls[i].p[1];
+      var xi = Math.floor((x/width) * (r*2));
+      var yi = Math.floor((y/height) * (r*2));
+      return [xi,yi];
+  }
+
+  function getNeighbors(){
+
+  }; 
+
   function checkBoundaryCollisions(balls){
   	for(var i=0; i<balls.length; i++){
   		var x = balls[i].p[0];
@@ -82,11 +122,11 @@ function Simulation(){
 }
 
 function startSim(){
+  for(var i=0; i< numBalls; i++){
+    balls.push(new Ball());
+  }
 	renderer = new Renderer(width, height);
 	sim = new Simulation();
-	for(var i=0; i< numBalls; i++){
-		balls.push(new Ball());
-	}
 	animate();
 }
 
