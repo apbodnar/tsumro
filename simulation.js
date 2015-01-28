@@ -1,13 +1,13 @@
 var renderer;
 var sim;
 var balls = [];
-var numBalls = 50;
+var numBalls = 100;
 var height = 800;
 var width = 600;
-var gravity = vec2.fromValues(0,2.0);
+var gravity = vec2.fromValues(0,8.0);
 var dt = 0.1;
-var r = 20;
-var k = 10;
+var r = 25;
+var k = 15;
 
 function Ball(){
 	this.p = vec2.fromValues(Math.random()*(width-r*2)+r, Math.random()*(height-r*2)+r);
@@ -60,9 +60,14 @@ function Simulation(){
   	for(var i=0; i<balls.length; i++){
   		var x = balls[i].p[0];
   		var y = balls[i].p[1];
-  		if(x <= r || x >= width-r){
-				balls[i].v[0] *= -0.99;
+  		if(x <= r){
+				balls[i].v[0] = Math.abs(balls[i].v[0]);
+        balls[i].a[0] += (r - x)*k;
 			}
+      if(x >= width-r){
+        balls[i].v[0] = -Math.abs(balls[i].v[0]);
+        balls[i].a[0] += ((width-r) - x)*k;
+      }
 			if(y >= height-r){
 				balls[i].v[1] = -Math.abs(balls[i].v[1]);
 				balls[i].a[1] += ((height-r) - y)*k;

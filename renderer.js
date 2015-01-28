@@ -12,7 +12,7 @@ function Renderer(width, height){
     ctx.fill();
     ctx.fillStyle = "#ff0000"
     ctx.strokeStyle = "#000000"
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 3;
     balls.forEach(function(ball){ ball.draw(ctx); })
   };
 }
