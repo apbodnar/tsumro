@@ -9,10 +9,7 @@ function Renderer(width, height){
     var ctx = this.ctx;
     ctx.fillStyle = "#ddd"
     ctx.fillRect(0,0,canvas.width, canvas.height);
+    balls.forEach(function(ball,i){ ball.draw(ctx); })
     ctx.fill();
-    ctx.fillStyle = "#8888ff"
-    ctx.strokeStyle = "#000000"
-    ctx.lineWidth = 2;
-    balls.forEach(function(ball){ ball.draw(ctx); })
   };
 }

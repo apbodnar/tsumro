@@ -6,3 +6,9 @@ canvas{
 body{
   background-color: #333;
 }
+
+h1{
+  text-align: center;
+  color: white;
+  font-family: Helvetica, sans-serif 
+}
