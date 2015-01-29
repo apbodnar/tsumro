@@ -1,12 +1,14 @@
 var renderer;
 var sim;
 var balls = [];
-var numBalls = 200;
+var numBalls = 400;
 var height = 800;
 var width = 600;
 var gravity = vec2.fromValues(0,8.0);
 var dt = 0.1;
 var r = 10;
+var xRes = Math.ceil(width / (2 * r));
+var yRes = Math.ceil(height / (2 * r));
 var k = 15;
 var grid = [[]];
 
@@ -32,71 +34,96 @@ function Ball(){
 function Simulation(){
    var grid = function(){
     var grid = [];
-    var xRes = Math.ceil(width / (2 * r));
-    var yRes = Math.ceil(height / (2 * r));
     for(var i=0; i<xRes; i++){
       grid.push([]);
       for(var j=0; j<yRes; j++){
-        grid[i].push({});
+        grid[i].push([]);
       }
     }
     return grid;
   }();
   
-  this.update = function(balls){
+  this.update = function(){
   	addGravity(balls);
     checkCollisions(balls);
     moveBalls(balls);
   }
-  function moveBalls(balls){
+  function moveBalls(){
     balls.forEach(function(ball){ ball.move(); })
   }
-  function checkCollisions(balls){
+  function checkCollisions(){
 		checkBallCollisions(balls);
 		checkBoundaryCollisions(balls);
   }
-  function checkBallCollisions(balls){
-    buildGrid(balls);
+  function checkBallCollisions(){
+    buildGrid();
   	for(var i=0; i<balls.length; i++){
-  		for(var j=0; j<balls.length; j++){
-  			if(i === j) continue;
-  			var span = vec2.sub(vec2.create(),balls[i].p,balls[j].p);
+  		var neighbors = getNeighbors(i);
+  		for(var j=0; j<neighbors.length; j++){
+  			var n = neighbors[j];
+  			var span = vec2.sub(vec2.create(),balls[i].p,balls[n].p);
   			var dist = vec2.length(span);
   			vec2.normalize(span,span);
   			if(dist < r*2){
   				var eq = r*2 - dist;
   				vec2.add(balls[i].a,balls[i].a,vec2.scale(vec2.create(),span,eq*k));
-  				vec2.add(balls[j].a,balls[j].a,vec2.scale(vec2.create(),span,-eq*k));
+  				vec2.add(balls[n].a,balls[n].a,vec2.scale(vec2.create(),span,-eq*k));
+  			}
+  		}
+  	}
+  	resetGrid();
+  }
+
+  function resetGrid(){
+  	for(var i=0; i<grid.length;i++){
+  		for(var j=0; j<grid[i].length;j++){
+  			if(grid[i][j].length){
+  				grid[i][j]=[];
   			}
   		}
   	}
   }
 
-  function buildGrid(balls){
+  function buildGrid(){
     for(var i=0; i < balls.length; i++){
-      var x = balls[i].p[0];
-      var y = balls[i].p[1];
-      var xi = Math.floor((x/width) * (r*2));
-      var yi = Math.floor((y/height) * (r*2));
-      if(yi <= 0 && xi <= 0){
-        grid[xi][yi][""+i] = true;
+    	var coords = getCoords(i);
+    	var x = coords[0];
+    	var y = coords[1];
+      if(y >= 0 && x >= 0 && y < yRes && x < xRes){
+        grid[x][y].push(i);
       }
     }
   }
 
+  console.log(grid);
+
   function getCoords(i){
-      var x = balls[i].p[0];
-      var y = balls[i].p[1];
-      var xi = Math.floor((x/width) * (r*2));
-      var yi = Math.floor((y/height) * (r*2));
-      return [xi,yi];
+    var x = balls[i].p[0];
+    var y = balls[i].p[1];
+    var xi = Math.floor((x/width) * xRes);
+    var yi = Math.floor((y/height) * yRes);
+    return [xi,yi];
   }
 
-  function getNeighbors(){
+  function getNeighbors(b){
+  	var neighbors = [];
+  	var coords = getCoords(b);
+    for(var i=coords[0]-1; i<coords[0]+2 && i<xRes; i++){
+			for(var j=coords[1]-1; j<coords[1]+2 && j<yRes; j++){
+				if(i>=0 && j>=0 ){
+					var cell = grid[i][j];
+					for(var k=0; k<cell.length; k++){
+						if(k != b){
+							neighbors.push(k);
+						}
+					}
+				}
+			}
+    }
+    return neighbors;
+  }
 
-  }; 
-
-  function checkBoundaryCollisions(balls){
+  function checkBoundaryCollisions(){
   	for(var i=0; i<balls.length; i++){
   		var x = balls[i].p[0];
   		var y = balls[i].p[1];
@@ -114,7 +141,8 @@ function Simulation(){
 			}
   	}
   }
-  function addGravity(balls){
+
+  function addGravity(){
     for(var i = 0; i < balls.length; i++){
       vec2.add(balls[i].a, balls[i].a, gravity);
     }
