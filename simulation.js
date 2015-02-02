@@ -1,38 +1,24 @@
 var renderer;
 var sim;
 var balls = [];
-var numBalls = 500;
+var numBalls = 50;
 var height = 800;
 var width = 600;
 var gravity = vec2.fromValues(0,8.0);
-var dt = 0.1;
-var r = 16;
+var dt = 0.05;
+var r = 30;
 var xRes = Math.ceil(width / (2 * r));
 var yRes = Math.ceil(height / (2 * r));
-console.log(xRes + " " +yRes);
-var k = 25;
+var k = 15;
 var run = 1;
 
 function Ball(){
   this.p = vec2.fromValues(Math.random()*(width-r*2)+r, Math.random()*(height-r*2)+r);
   this.v = vec2.fromValues(0,0);
   this.a = vec2.fromValues(0,0);
-  this.color = "rgb(" +Math.round(Math.random()*256) + "," 
-                      +Math.round(Math.random()*256) + "," 
-                      +Math.round(Math.random()*256) + ")";
-  this.move = function(){
-    vec2.add(this.v,this.v,vec2.scale(vec2.create(),this.a,dt));
-    var damper = 1-Math.atan(vec2.length(this.v)/2000)/(Math.PI/2);
-    vec2.scale(this.v,this.v,damper);
-    vec2.add(this.p,this.p,vec2.scale(vec2.create(),this.v,dt));
-    vec2.set(this.a,0,0);
-  };
-  this.draw = function(ctx){
-    ctx.beginPath();
-    ctx.fillStyle = this.color;
-    ctx.arc(this.p[0],this.p[1],r,0,Math.PI*2);
-    ctx.fill();
-  }
+  this.a0 = vec2.fromValues(0,0);
+  this.rgb = vec3.fromValues(Math.round(Math.random()*224+32),Math.round(Math.random()*224+32),Math.round(Math.random()*224+32));
+  this.color = "rgb(" + this.rgb[0] + "," + this.rgb[1] + "," + this.rgb[2] + ")";
 }
 
 function Simulation(){
@@ -46,14 +32,37 @@ function Simulation(){
     }
     return grid;
   }();
+
+  function integrateEuler(ball){
+    vec2.add(ball.v,ball.v,vec2.scale(vec2.create(),ball.a,dt));
+    var damper = 1-Math.atan(vec2.length(ball.v)/5000)/(Math.PI/2);
+    vec2.scale(ball.v,ball.v,damper);
+    vec2.add(ball.p,ball.p,vec2.scale(vec2.create(),ball.v,dt));
+    vec2.set(ball.a,0,0);
+  }
+
+  function integrateVelVerlet(ball){
+  	var a0 = ball.a0;
+  	var a = ball.a;
+  	var v = ball.v;
+  	var p = ball.p;
+  	vec2.add(p,p,vec2.add(vec2.create(),vec2.scale(vec2.create(),v,dt),vec2.scale(vec2.create(),a0,dt*dt*0.5)));
+  	vec2.add(v,v,vec2.scale(vec2.create(),vec2.add(vec2.create(),a,a0),0.5*dt));
+  }
   
   this.update = function(){
-    addGravity(balls);
-    checkCollisions(balls);
-    moveBalls(balls);
+  	for(var i=0; i< balls.length; i++){
+  		vec2.copy(balls[i].a0,balls[i].a);
+  		vec2.set(balls[i].a,0,0);
+  	}
+    addGravity();
+    checkCollisions();
+    moveBalls();
   }
   function moveBalls(){
-    balls.forEach(function(ball){ ball.move(); })
+    for(var i=0; i<balls.length; i++){
+      integrateEuler(balls[i]);
+    }
   }
   function checkCollisions(){
     checkBallCollisions(balls);
@@ -62,20 +71,23 @@ function Simulation(){
   function checkBallCollisions(){
     buildGrid();
     for(var i=0; i<balls.length; i++){
-      var neighbors = getNeighbors(i);
-      for(var j=0; j<neighbors.length; j++){
-        var n = neighbors[j];
-        var span = vec2.sub(vec2.create(),balls[i].p,balls[n].p);
-        var dist = vec2.length(span);
-        vec2.normalize(span,span);
-        if(dist < r*2){
-          var eq = r*2 - dist;
-          vec2.add(balls[i].a,balls[i].a,vec2.scale(vec2.create(),span,eq*k));
-          vec2.add(balls[n].a,balls[n].a,vec2.scale(vec2.create(),span,-eq*k));
-        }
-      }
+      balls[i].neighbors = getNeighbors(i);
+      addForces(i);
     }
     resetGrid();
+  }
+  function addForces(i,a){
+    for(var j=0; j<balls[i].neighbors.length; j++){
+      var n = balls[i].neighbors[j];
+      var span = vec2.sub(vec2.create(),balls[i].p,balls[n].p);
+      var dist = vec2.length(span);
+      vec2.normalize(span,span);
+      if(dist < r*2){
+        var eq = r*2 - dist;
+        vec2.add(balls[i].a,balls[i].a,vec2.scale(vec2.create(),span,eq*k));
+        vec2.add(balls[n].a,balls[n].a,vec2.scale(vec2.create(),span,-eq*k));
+      }
+    }
   }
 
   function resetGrid(){
